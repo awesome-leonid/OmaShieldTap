@@ -58,9 +58,16 @@ jobs:
           PY
       - name: Build and verify indexed source archive
         run: |
-          python3 scripts/make-release.py --output dist
+          # The runner owns the mounted checkout; the container runs as root.
+          export GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=safe.directory GIT_CONFIG_VALUE_0="$GITHUB_WORKSPACE"
+          git status --short
+          if ! result=$(python3 scripts/make-release.py --output dist 2>&1); then
+            printf '::error::%s\n' "$(printf '%s' "$result" | tr '\n' ' ')"
+            exit 1
+          fi
+          printf '%s\n' "$result"
           (cd dist && sha256sum --check SHA256SUMS)
-          tar -tzf dist/omarchy-remote-buttons-0.1.0.tar.gz
+          python3 -m tarfile -l dist/omarchy-remote-buttons-0.1.0.tar.gz
       - name: Store source artifact (not publication)
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
