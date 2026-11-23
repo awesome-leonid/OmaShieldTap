@@ -20,8 +20,8 @@ an independently installed program; that program is not supplied by this plugin.
 - Linux running Omarchy's native Quickshell UI and Hyprland **Lua** configuration.
   Your active Hyprland config must load `hypr/bindings.lua` (as Omarchy's
   standard configuration does). A custom configuration must load it too.
-- Python 3 with its standard library; Omarchy's native `libxkbcommon` for keymap
-  compilation. No pip dependencies.
+- Python 3 with its standard library and `libxkbcommon` 1.11 or newer for XKB v2
+  keymap compilation. No pip dependencies.
 - One configured remote for this MVP. The built-in NVIDIA SHIELD 2019 preset has
   16 button records. Other hardware may need explicit source-key/button records
   through the JSON model; the preset is not evidence that every Bluetooth

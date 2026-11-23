@@ -11,16 +11,18 @@ permissions:
 jobs:
   test-and-package:
     runs-on: ubuntu-24.04
+    # Omarchy uses Arch's XKB stack. Ubuntu 24.04 ships libxkbcommon 1.6,
+    # which cannot compile or serialize the plugin's XKB v2 keymaps.
+    container: archlinux:base@sha256:fcee73ea1b96e236248f53a213f71276cc9072d9025b58bce9915e32f19963ae
     timeout-minutes: 15
     steps:
+      - name: Install Arch test dependencies
+        run: pacman -Syu --noconfirm --needed git python nodejs lua libxkbcommon xkeyboard-config
       - name: Check out reviewed source
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           persist-credentials: false
-      - name: Install native test dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install --no-install-recommends -y nodejs lua5.4 libxkbcommon0 libxkbcommon-tools xkb-data
+
       - name: Backend stdlib and per-device keymap tests
         run: python3 -m unittest discover -s tests -p test_backend.py -v
       - name: Node model and UI contract tests

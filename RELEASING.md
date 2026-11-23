@@ -61,7 +61,8 @@ maintainer's real Git identity) or an existing reviewed local checkout.
 
 ## CI and publication boundary
 
-The Ubuntu 24.04 workflow runs backend/stdlib, Node model, and release tests,
+The workflow runs backend/stdlib, Node model, and release tests in an Arch Linux
+container so the keymap tests use the same XKB format as Omarchy. It
 checks generated Lua plus source Lua syntax when source files exist, then builds/checksums a source
 artifact. Native Omarchy UI fixtures skip on hosted runners without Wayland and
 the installed shell. No audio job exists. A workflow file is not evidence that
