@@ -19,23 +19,24 @@ libxkbcommon, Hyprland Lua, and Quickshell. There is no audio build or service.
   commands. Never modify the live desktop as an incidental test step.
 - Do not add global Claude/Codex/Hermes configuration. Keep portable instructions
   in the README, `agent/SKILL.md`, and the backend's `agent-guide`.
+- Open a pull request against `main`. Wait for the `test-and-package` check to
+  pass and have the maintainer review the changes before merging.
 
 ## Automated checks
 
 ```sh
-python3 -m unittest discover -s tests -p test_backend.py -v
-python3 -m unittest discover -s tests -p test_ui.py -v
-python3 -m unittest discover -s tests -p test_release.py -v
+python3 -m unittest discover -s tests -v
 ```
 
-The suite uses stdlib unittest. Model tests also need Node.js. Backend keymap
-verification uses native libxkbcommon and `xkbcli`; Lua syntax checks require
-`luac` (Lua 5.4). Release tests create fresh temporary Git repositories and do
-not contact a network or alter this checkout's index.
+The suite uses Python's standard-library `unittest`. Model tests also need
+Node.js. Backend keymap tests need `libxkbcommon` 1.11 or newer (for XKB v2) and
+`xkbcli`; Lua syntax checks use `luac`. Release tests create temporary Git
+repositories without contacting a network or changing this checkout's index.
 
-On Ubuntu 24.04 CI, native dependencies are installed with
-`libxkbcommon0 libxkbcommon-tools xkb-data lua5.4 nodejs`. Desktop calls are faked
-in backend tests; this is not a simulated claim that the actual compositor ran.
+GitHub Actions runs these checks inside an Arch Linux container, even though
+GitHub hosts the container on Ubuntu. The Arch packages are `git`, `python`,
+`nodejs`, `lua`, `libxkbcommon` (which includes `xkbcli`), and `xkeyboard-config`.
+Backend tests normally use simulated desktop calls, not a live compositor.
 
 Native Qt/Quickshell fixtures require the installed Omarchy shell and Wayland;
 otherwise they skip explicitly. Their windows stay hidden and they must not
