@@ -13,7 +13,7 @@
 - Center/OK defaults to Return; mic calls the separately installed
   `omarchy-dictation toggle` command. Other buttons retain native behavior.
 - Portable agent instructions, offline release regressions, deterministic indexed
-  source packaging, and an Ubuntu 24.04 CI template.
+  source packaging, and CI using an Arch Linux container.
 - No audio implementation, Bluetooth bridge, recording, audio binary/build,
   root service, provider account, or network requirement.
 
