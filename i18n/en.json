@@ -1,0 +1,14 @@
+{
+  "panel.title": "OmaShieldTap",
+  "panel.battery": "SHIELD remote battery: %1",
+  "panel.agent": "Ask your agent to change a button",
+  "panel.cli": "Any agent with terminal access can use omarchy-remote-buttons agent-guide. To inspect assignments: omarchy-remote-buttons show. This view never runs button actions.",
+  "panel.setup": "No remote configuration found. Follow the Install section of the OmaShieldTap README: use the installed Python script to identify your remote, audit Hyprland shortcuts for one non-modifier key each, then run the documented setup.",
+  "panel.native": "Native — handled by the active app / Omarchy",
+  "panel.nativeShort": "Native",
+  "panel.disabled": "Disabled",
+  "panel.sourceKey": "Source key: %1",
+  "panel.stale": "Showing the last valid assignments; they may be out of date.",
+  "error.invalid": "The remote button configuration is invalid. Ask your agent to check it with omarchy-remote-buttons show.",
+  "error.read": "Cannot read the remote button configuration. Ask your agent to check access with omarchy-remote-buttons show."
+}

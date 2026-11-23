@@ -1,0 +1,70 @@
+name: source-checks
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-and-package:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out reviewed source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Install native test dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y nodejs lua5.4 libxkbcommon0 libxkbcommon-tools xkb-data
+      - name: Backend stdlib and per-device keymap tests
+        run: python3 -m unittest discover -s tests -p test_backend.py -v
+      - name: Node model and UI contract tests
+        # Native Qt fixtures explicitly skip without installed Omarchy/Wayland.
+        # Local native acceptance remains a release requirement.
+        run: python3 -m unittest discover -s tests -p test_ui.py -v
+      - name: Offline release regressions
+        run: python3 -m unittest discover -s tests -p test_release.py -v
+      - name: Check source contracts
+        run: python3 -m unittest discover -s tests -p test_source_contract.py -v
+      - name: Check generated and source Lua syntax
+        run: |
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          import shutil
+          import subprocess
+          import tempfile
+          from unittest.mock import patch
+          import remote_buttons as backend
+          compiler = shutil.which('luac5.4') or shutil.which('luac')
+          assert compiler, 'Lua compiler is required'
+          with tempfile.TemporaryDirectory(prefix='buttons-lua-', dir=os.environ.get('TMPDIR')) as work:
+              with patch.dict(os.environ, HOME=work, XDG_CONFIG_HOME=work + '/config', XDG_STATE_HOME=work + '/state'):
+                  config = backend.default_config('shield-remote', 'CI fixture')
+                  config['buttons'][2]['action'] = {'kind': 'disabled'}
+                  config['buttons'][3]['action'] = {'kind': 'shortcut', 'mods': 'CTRL', 'key': 'V'}
+                  subprocess.run([compiler, '-p', '-'], input=backend.render_lua(config, backend.Paths()), text=True, check=True)
+          files = sorted(p for folder in ('scripts', 'tests', 'docs') for p in Path(folder).rglob('*.lua'))
+          for path in files:
+              subprocess.run([compiler, '-p', str(path)], check=True)
+          print(f'Checked generated Lua and {len(files)} source Lua files; native acceptance remains separate.')
+          PY
+      - name: Build and verify indexed source archive
+        run: |
+          python3 scripts/make-release.py --output dist
+          (cd dist && sha256sum --check SHA256SUMS)
+          tar -tzf dist/omarchy-remote-buttons-0.1.0.tar.gz
+      - name: Store source artifact (not publication)
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: omarchy-remote-buttons-0.1.0-source
+          path: |
+            dist/omarchy-remote-buttons-0.1.0.tar.gz
+            dist/SHA256SUMS
+          if-no-files-found: error
+          retention-days: 7

@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "leo.remote-buttons",
+  "name": "OmaShieldTap",
+  "version": "0.1.0",
+  "author": "Leo",
+  "license": "MIT",
+  "description": "Remap Bluetooth remote buttons on Omarchy, with a 2019 NVIDIA SHIELD preset.",
+  "kinds": ["bar-widget"],
+  "entryPoints": {"barWidget": "Panel.qml"},
+  "barWidget": {
+    "displayName": "OmaShieldTap",
+    "description": "A read-only assignment cheat sheet. Change buttons with omarchy-remote-buttons.",
+    "category": "System",
+    "allowMultiple": false,
+    "defaultSection": "right",
+    "defaults": {},
+    "schema": []
+  }
+}

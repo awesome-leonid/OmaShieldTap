@@ -1,0 +1,96 @@
+#!/usr/bin/env python3
+"""Fake compositor; all state is restricted to the private test HOME."""
+import json
+import os
+from pathlib import Path
+import re
+import signal
+import sys
+
+home = Path(os.environ['HOME'])
+args = sys.argv[1:]
+active = home / 'active-managed-binds.json'
+with (home / 'hyprctl.calls').open('a') as stream:
+    stream.write(json.dumps(args) + '\n')
+if args == ['-j', 'devices']:
+    print(json.dumps({'keyboards': [json.loads(os.environ.get('FAKE_DEVICE',
+        '{"name":"shield-remote","main":false,"rules":"","model":"","layout":"us","variant":"","options":""}')),
+        {'name': 'laptop-keyboard', 'main': True}]}))
+elif args == ['-j', 'getoption', 'input:kb_file']:
+    print(json.dumps({'str': os.environ.get('FAKE_KB_FILE', '[[EMPTY]]')}))
+elif args in (['-j', 'binds'], ['binds']):
+    defaults = dict(locked=False, mouse=False, release=False, repeat=False, longPress=False,
+                    non_consuming=False, auto_consuming=False, has_description=False, modmask=0,
+                    submap='', submap_universal='false', key='', keycode=0, catch_all=False,
+                    description='', allow_input_capture=False, dispatcher='exec', arg='')
+    rows = [dict(defaults, **row) for row in json.loads(os.environ.get('FAKE_BINDS', '[]'))]
+    if active.exists():
+        rows += [dict(defaults, **row) for row in json.loads(active.read_text())]
+    if args[0] == '-j':
+        print(json.dumps([{k: v for k, v in row.items() if k != 'display_key'} for row in rows]))
+    else:
+        text = ''
+        for row in rows:
+            text += 'bind' + ''.join(flag for key, flag in (
+                ('locked', 'l'), ('mouse', 'm'), ('release', 'r'), ('repeat', 'e'), ('non_consuming', 'n'),
+                ('auto_consuming', 'a'), ('has_description', 'd'), ('allow_input_capture', 'x')) if row[key]) + '\n'
+            for name in ('modmask', 'submap', 'key', 'keycode', 'catchall', 'description', 'dispatcher', 'arg'):
+                value = row['catch_all'] if name == 'catchall' else row.get(name)
+                if name == 'key':
+                    value = row.get('display_key', value)
+                if isinstance(value, bool):
+                    value = str(value).lower()
+                text += '\t' + name + ': ' + str(value) + '\n'
+            text += '\n'
+        print(os.environ.get('FAKE_BINDS_TEXT', text), end='')
+elif args == ['reload']:
+    config = home / 'config/omarchy-remote-buttons/config.json'
+    with (home / 'config-at-reload').open('a') as stream:
+        stream.write((config.read_text() if config.exists() else 'MISSING') + '\n')
+    if (home / 'interrupt-reload').exists():
+        (home / 'interrupt-reload').unlink()
+        os.kill(os.getppid(), signal.SIGINT)
+    if (home / 'replace-lua-on-reload').exists():
+        (home / 'replace-lua-on-reload').unlink()
+        lua = home / 'config/hypr/remote-buttons.lua'
+        replacement = lua.with_suffix('.external')
+        replacement.write_text('-- external replacement\n')
+        replacement.replace(lua)
+    if (home / 'edit-old-map-on-reload').exists():
+        (home / 'edit-old-map-on-reload').unlink()
+        oldmap = home / 'config/hypr/remote-buttons-r1.xkb'
+        oldmap.write_text(oldmap.read_text() + '\n// concurrent edit\n')
+    if (home / 'fail-reload').exists():
+        (home / 'fail-reload').unlink()
+        print('reload failed', file=sys.stderr)
+        sys.exit(1)
+    ignored = home / 'ignore-reload-once'
+    skip_reload = ignored.exists()
+    ignored.unlink(missing_ok=True)
+    if (home / 'ignore-rollback-reload').exists() and (home / 'config-error').exists():
+        ignored.touch()  # Ignore the next reload after this one fails configerrors.
+        (home / 'ignore-rollback-reload').unlink()
+    if not skip_reload:
+        hypr = Path(os.environ['XDG_CONFIG_HOME']) / 'hypr'
+        hook, lua = hypr / 'bindings.lua', hypr / 'remote-buttons.lua'
+        omit = home / 'omit-disabled-once'
+        repeat = home / 'wrong-manager-flags-once'
+        rows = []
+        if hook.exists() and lua.exists() and f'dofile({json.dumps(str(lua))})' in hook.read_text():
+            for line in lua.read_text().splitlines():
+                match = re.fullmatch(r'hl.bind\("(F[0-9]+)", .*description = "([^"\n]*)" \}\)', line)
+                if match and not (omit.exists() and 'function() end' in line):
+                    rows.append(dict(key=match[1], description=match[2], has_description=True,
+                                     dispatcher='__lua', arg=str(40 + len(rows)), submap_universal='true',
+                                     repeat=repeat.exists()))
+        omit.unlink(missing_ok=True)
+        repeat.unlink(missing_ok=True)
+        active.write_text(json.dumps(rows))
+    print('ok')
+elif args == ['configerrors']:
+    if (home / 'config-error').exists():
+        (home / 'config-error').unlink()
+        print('fixture compositor parse failure')
+else:
+    print('unexpected fake hyprctl invocation', args, file=sys.stderr)
+    sys.exit(2)

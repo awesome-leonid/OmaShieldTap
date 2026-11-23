@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+build/
+dist/
+ARCHITECTURE.md
+*.log
+*.wav
+*.pcm
+*.raw
+.env
+.env.*
